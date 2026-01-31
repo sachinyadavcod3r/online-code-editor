@@ -1,173 +1,184 @@
-// editor.js — handles editor actions, run, save, theme, and IO toggle
-document.addEventListener("DOMContentLoaded", async () => {
-  // Load project when opened from My Projects page
-  const urlParams = new URLSearchParams(window.location.search);
-  const openId = urlParams.get("open");
+// editor.js
+// Handles CodeMirror setup and editor-related actions
+// IMPORTANT: UI event binding is done via initEditorUI()
+// This is required because layout.js injects buttons dynamically
 
-  if (openId) {
-    fetch("/api/code/get/" + openId, { credentials: "include" })
-      .then((res) => res.json())
-      .then((data) => {
-        editor.setValue(data.code);
-        languageSelect.value = data.language;
-      });
-  }
+let editor; // global reference so layout.js can trigger init safely
 
-  // Initialize CodeMirror
-  const editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
+// -------------------------------
+// Initialize CodeMirror editor
+// -------------------------------
+document.addEventListener("DOMContentLoaded", () => {
+  const textarea = document.getElementById("editor");
+  if (!textarea) return;
+
+  editor = CodeMirror.fromTextArea(textarea, {
     mode: "text/x-c++src",
     theme: localStorage.getItem("theme") === "light" ? "eclipse" : "dracula",
     lineNumbers: true,
     autoCloseBrackets: true,
   });
+
   editor.setSize("100%", "100%");
 
-  // Grab DOM elements
+  // Restore code + language
+  const savedLang = localStorage.getItem("language");
+  const savedCode = localStorage.getItem("code");
+  if (savedLang) document.getElementById("languageSelect").value = savedLang;
+  if (savedCode) editor.setValue(savedCode);
+
+  applySavedTheme();
+});
+
+// ------------------------------------------------
+// Called by layout.js AFTER navbar buttons exist
+// ------------------------------------------------
+function initEditorUI() {
+  // Grab elements that layout.js injected
   const runBtn = document.getElementById("run");
   const saveBtn = document.getElementById("saveCode");
   const newBtn = document.getElementById("newCode");
   const togglePanel = document.getElementById("togglePanel");
   const themeToggle = document.getElementById("themeToggle");
+  const ioPane = document.getElementById("ioPane");
   const input = document.getElementById("input");
   const output = document.getElementById("output");
-  const ioPane = document.getElementById("ioPane");
   const languageSelect = document.getElementById("languageSelect");
 
-  // 🧠 Restore saved state
-  const savedLang = localStorage.getItem("language");
-  const savedCode = localStorage.getItem("code");
-  if (savedLang) languageSelect.value = savedLang;
-  if (savedCode) editor.setValue(savedCode);
+  // Safety guard (important for non-editor pages)
+  if (!editor || !runBtn) return;
 
-  // 🧩 Language Change
+  // -------------------------------
+  // Language change
+  // -------------------------------
   languageSelect.addEventListener("change", () => {
     const lang = languageSelect.value;
     const mode =
       lang === "Java"
         ? "text/x-java"
         : lang === "Python"
-          ? "text/x-python"
-          : "text/x-c++src";
+        ? "text/x-python"
+        : "text/x-c++src";
+
     editor.setOption("mode", mode);
     localStorage.setItem("language", lang);
   });
 
-  // ▶ Run Code
+  // -------------------------------
+  // Run code
+  // -------------------------------
   runBtn.addEventListener("click", async () => {
     output.value = "⏳ Running...";
-    const codeData = {
+
+    // Disable native execution on Render (expected behavior)
+    if (location.hostname.includes("onrender.com") && languageSelect.value !== "Python") {
+      output.value = "⚠️ Code execution for this language is disabled in production.";
+      return;
+    }
+
+    const payload = {
       code: editor.getValue(),
       input: input.value,
       lang: languageSelect.value,
     };
-    localStorage.setItem("code", editor.getValue());
+
+    localStorage.setItem("code", payload.code);
 
     try {
       const res = await fetch("/compile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(codeData),
+        body: JSON.stringify(payload),
       });
+
       const data = await res.json();
       output.value = data.output || "⚠️ No output";
     } catch {
-      output.value = "❌ Server error while compiling";
+      output.value = "❌ Server error";
     }
   });
 
-  // 💾 Save Code (requires login)
+  // -------------------------------
+  // Save code (authenticated)
+  // -------------------------------
   saveBtn.addEventListener("click", async () => {
-    // Ask for project name
-    let projectName = prompt("Enter project name:");
+    let name = prompt("Enter project name:");
+    if (!name || !name.trim()) return alert("Project name required");
 
-    if (!projectName || projectName.trim() === "") {
-      alert("Project name is required!");
-      return;
-    }
-
-    projectName = projectName.trim();
-
-    // Set correct file extension based on language
     const lang = languageSelect.value;
-    let extension = "";
-
-    if (lang === "Cpp") extension = ".cpp";
-    if (lang === "Java") extension = ".java";
-    if (lang === "Python") extension = ".py";
-
-    const filename = projectName + extension;
-
-    const codeData = {
-      filename: filename,
-      language: lang,
-      code: editor.getValue(),
-    };
+    const ext = lang === "Cpp" ? ".cpp" : lang === "Java" ? ".java" : ".py";
 
     try {
       const res = await fetch("/api/code/save", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(codeData),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: name.trim() + ext,
+          language: lang,
+          code: editor.getValue(),
+        }),
       });
 
-      if (res.status === 401) {
-        alert("Please log in to save your code!");
-        return;
-      }
-
-      const data = await res.json();
-      alert("Saved as: " + filename);
-    } catch (err) {
-      console.error("Save error:", err);
-      alert("❌ Error saving code.");
+      if (res.status === 401) return alert("Please login to save");
+      alert("✅ Project saved");
+    } catch {
+      alert("❌ Save failed");
     }
   });
 
-  // 🆕 New Code
+  // -------------------------------
+  // New code
+  // -------------------------------
   newBtn.addEventListener("click", () => {
-    if (confirm("Clear current code?")) {
+    if (confirm("Clear editor?")) {
       editor.setValue("");
       input.value = "";
       output.value = "";
     }
   });
 
-  // 🔁 Hide / Show IO Panel
+  // -------------------------------
+  // Toggle IO panel
+  // -------------------------------
   togglePanel.addEventListener("click", () => {
     ioPane.classList.toggle("hidden");
-    if (ioPane.classList.contains("hidden")) {
-      togglePanel.textContent = "Show IO ◂";
-    } else {
-      togglePanel.textContent = "Hide IO ▸";
-    }
+    togglePanel.textContent = ioPane.classList.contains("hidden")
+      ? "Show IO ◂"
+      : "Hide IO ▸";
   });
 
-  // 🌗 Theme Toggle
-  themeToggle.addEventListener("click", () => {
-    const currentTheme = editor.getOption("theme");
-    if (currentTheme === "dracula") {
-      editor.setOption("theme", "eclipse");
-      themeToggle.textContent = "🌙 Dark";
-      localStorage.setItem("theme", "light");
-      document.body.classList.remove("dark-mode");
-    } else {
-      editor.setOption("theme", "dracula");
-      themeToggle.textContent = "☀️ Light";
-      localStorage.setItem("theme", "dark");
-      document.body.classList.add("dark-mode");
-    }
-  });
+  // -------------------------------
+  // Theme toggle
+  // -------------------------------
+  themeToggle.addEventListener("click", toggleTheme);
+}
 
-  // Apply saved theme on load
-  const savedTheme = localStorage.getItem("theme") || "dark";
-  if (savedTheme === "dark") {
-    document.body.classList.add("dark-mode");
+// -------------------------------
+// Theme helpers
+// -------------------------------
+function toggleTheme() {
+  const theme = editor.getOption("theme") === "dracula" ? "light" : "dark";
+  localStorage.setItem("theme", theme);
+  applySavedTheme();
+}
+
+function applySavedTheme() {
+  const theme = localStorage.getItem("theme") || "dark";
+  const themeToggle = document.getElementById("themeToggle");
+
+  if (!editor || !themeToggle) return;
+
+  if (theme === "dark") {
     editor.setOption("theme", "dracula");
+    document.body.classList.add("dark-mode");
     themeToggle.textContent = "☀️ Light";
   } else {
-    document.body.classList.remove("dark-mode");
     editor.setOption("theme", "eclipse");
+    document.body.classList.remove("dark-mode");
     themeToggle.textContent = "🌙 Dark";
   }
-});
+}
+
+// Expose initializer globally for layout.js
+window.initEditorUI = initEditorUI;

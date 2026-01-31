@@ -1,6 +1,15 @@
+# dependencies
 node_modules/
+
+# environment variables
 .env
-public/codemirror-5.65.19/
-public/vendor/
+
+# editor libs (do not commit vendor libs)
+codemirror-5.65.19/
+
+# temp compile files
+temp/
+
+# OS files
 .DS_Store
-dist/
+Thumbs.db

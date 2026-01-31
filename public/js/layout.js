@@ -46,6 +46,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Build menu based on login state
   await buildMenu();
 
+   // After layout is fully injected, initialize editor UI bindings
+  if (typeof window.initEditorUI === "function") {
+    window.initEditorUI();
+  }
+
   async function buildMenu() {
   const menuList = document.getElementById("menuList");
   const res = await fetch("/api/auth/me", { credentials: "include" });
