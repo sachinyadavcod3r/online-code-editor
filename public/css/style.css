@@ -1,0 +1,103 @@
+body {
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+  transition: background-color 0.3s ease;
+}
+
+.workspace {
+  display: flex;
+  height: calc(100vh - 56px);
+}
+
+.editor-pane {
+  flex-grow: 1;
+  height: 100%;
+}
+
+.io-pane {
+  width: 30%;
+  border-left: 2px solid #dee2e6;
+  overflow-y: auto;
+  transition: width 0.3s ease, opacity 0.3s ease;
+}
+
+.io-pane.hidden {
+  width: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.CodeMirror {
+  height: 100%;
+  font-size: 15px;
+  border-radius: 0;
+}
+
+textarea {
+  resize: none;
+}
+
+.navbar select {
+  width: 150px;
+}
+
+/* 🌙 Dark Mode Enhancements */
+body.dark-mode {
+  background-color: #1e1e1e;
+  color: #f8f9fa;
+}
+
+body.dark-mode .navbar {
+  background-color: #121212 !important;
+}
+
+body.dark-mode .io-pane {
+  background-color: #2a2a2a !important;
+  border-left: 2px solid #3a3a3a;
+}
+
+body.dark-mode textarea {
+  background-color: #1e1e1e;
+  color: #f8f9fa;
+  border: 1px solid #3a3a3a;
+}
+
+body.dark-mode h6 {
+  color: #f8f9fa;
+}
+
+/* Sidebar styling */
+.sidebar {
+  position: fixed;
+  top: 56px;
+  left: -220px;
+  width: 220px;
+  height: calc(100vh - 56px);
+  overflow-y: auto;
+  transition: left 0.3s ease;
+  z-index: 1000;
+}
+.sidebar.open {
+  left: 0;
+}
+body {
+  background-color: #f8f9fa;
+}
+.navbar {
+  height: 56px;
+}
+.navbar h5 {
+  margin: 0;
+}
+.list-group-item {
+  background: #fff;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  border: 1px solid #e5e5e5;
+}
+
+.list-group-item .btn {
+  min-width: 80px;
+}
+
