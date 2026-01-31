@@ -1,6 +1,5 @@
 // layout.js — injects unified layout and handles sidebar state
 
-document.addEventListener("DOMContentLoaded", async () => {
   const body = document.body;
 
   // Create navbar HTML
@@ -104,4 +103,3 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 }
 
-});
