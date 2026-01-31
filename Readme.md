@@ -1,4 +1,9 @@
-# 💻 Online Code Editor
+## 💻 Online Code Editor
+
+## 🌐 Live Demo
+
+> Deployment in progress (Render)
+
 
 A full-stack online code editor that allows users to write, run, and save code securely with authentication and cloud storage.
 
@@ -40,7 +45,45 @@ A full-stack online code editor that allows users to write, run, and save code s
 
 ## ⚙️ Setup Instructions
 
-### 1️⃣ Clone the repository
+
+### 1️⃣ Clone the repository  Install dependencies
+
 ```bash
 git clone https://github.com/sachinyadavcod3r/online-code-editor.git
 cd online-code-editor
+```
+
+### 2️⃣ Install dependencies
+```bash
+npm install
+```
+
+### 3️⃣ Create .env file
+```bash
+PORT=8000
+MONGO_URI=your_mongodb_atlas_uri
+JWT_SECRET=your_secret_key
+NODE_ENV=development
+```
+
+### 4️⃣ Start the server
+```bash
+npm run dev
+```
+
+### 5️⃣ Open in browser
+```bash
+http://localhost:8000
+```
+
+## 🧩 Architecture Overview
+
+- Frontend is served as static files from Express
+- Backend exposes REST APIs for authentication and code management
+- MongoDB Atlas stores users and saved projects
+- JWT + cookies are used for secure authentication
+- Environment variables manage secrets and configuration
+
+
+
+
